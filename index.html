@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Greenville Watersheds — Current Conditions V12.5</title>
+<style>
+:root{--bg:#f3f5f2;--card:#fff;--ink:#17221b;--muted:#687269;--line:#dce2dc;--green:#214d36}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px/1.45 system-ui,Segoe UI,sans-serif;color:var(--ink)}
+header{background:var(--green);color:#fff;padding:20px 4vw}h1{margin:0;font-size:30px}header p{margin:5px 0 0;color:#dbe7df}
+main{max-width:1250px;margin:auto;padding:22px}.status,.note,.panel{background:#fff;border:1px solid var(--line);border-radius:10px}
+.status,.note{padding:10px 12px;margin-bottom:14px}.note{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.panel{padding:16px}.panel h2{margin:0 0 3px}.sub{color:var(--muted);margin-bottom:12px}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.card{padding:10px;background:#f8faf8;border:1px solid #e5e9e5;border-radius:8px}
+.card h3{font-size:14px;margin:0 0 5px}.vals{display:grid;grid-template-columns:1fr 1fr;gap:5px}.v{font-size:12px}.v b{display:block;font-size:16px}
+.weather{margin-top:18px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+button{padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;font-weight:650;cursor:pointer}.bad{color:#9a332a}.good{color:#326744}
+.chartgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.chartbox{border:1px solid var(--line);border-radius:9px;padding:10px;background:#fafbfa}
+.chartbox h3{margin:0 0 6px;font-size:14px}.chartbox svg{width:100%;height:150px;display:block}
+.rainlegend{margin-top:8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;font-size:11px}.rainlegend div{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #edf0ed;padding-top:4px}.rainlegend b{white-space:nowrap}
+.chartnote{font-size:11px;color:var(--muted);margin-top:3px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tabbtn{padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:700;cursor:pointer}.tabbtn.active{background:var(--green);color:#fff;border-color:var(--green)}.tabview{display:none}.tabview.active{display:block}
+.pctbar{position:relative;height:12px;border-radius:7px;background:linear-gradient(to right,#eef1ee 0 10%,#dde6df 10% 25%,#cbd9cf 25% 75%,#dde6df 75% 90%,#eef1ee 90% 100%);margin:7px 0 3px}.pctdot{position:absolute;top:-3px;width:4px;height:18px;background:#17221b;border-radius:2px}.pctlabels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}.pctwrap{min-width:190px}
+.context{font-size:11px;font-weight:700;padding:2px 6px;border-radius:999px;background:#e9eee9;display:inline-block;margin-top:4px}.contextnote{font-size:11px;color:var(--muted);margin-top:3px}
+.watershedfire{margin-top:14px}.watershedfire h3.grouphead{font-size:16px;margin:0 0 8px;border-bottom:2px solid var(--line);padding-bottom:6px}.firecards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.firecard{border:1px solid var(--line);border-radius:9px;padding:11px;background:#fafbfa}
+.firecard h3{margin:0 0 6px}.big{font-size:22px;font-weight:750}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:1fr}}
+
+.conditionbox{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0 14px;background:#fafbf9}
+.conditiontitle{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.conditionscale{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:10px 0 6px}
+.scaleitem{padding:7px 4px;text-align:center;border:1px solid var(--line);border-radius:6px;font-size:10px;background:#f2f4f1}
+.scaleitem.active{font-weight:800;outline:2px solid #315d78;background:#e7eef2}
+.factorgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:7px;margin-top:10px}
+.factor{border-top:1px solid #e1e5e1;padding-top:6px;font-size:11px}
+.factor b{display:block;font-size:13px}
+.explain{font-size:11px;color:#5e685f;line-height:1.35;margin-top:8px}
+</style></head><body>
+<header><h1>Greenville Watersheds — Current Conditions</h1><p>V12.5 station-feed Fahrenheit conversion • USGS provisional data</p></header>
+<main>
+<div class="status"><button onclick="load()">Refresh</button> &nbsp; <span id="status">Ready</span></div>
+<div class="note">V2 keeps the working USGS feed from V1.5 and adds 30-day history for rolling rainfall, daily fire-weather metrics, and hydrologic change. All observations are provisional.</div>
+<div class="tabs">
+<button class="tabbtn active" data-tab="overviewTab">Overview</button>
+<button class="tabbtn" data-tab="trendsTab">Trends</button>
+<button class="tabbtn" data-tab="fireTab">Fire Weather</button>
+<button class="tabbtn" data-tab="hydroTab">Hydrology</button>
+<button class="tabbtn" data-tab="stationsTab">Stations</button>
+</div>
+<div id="overviewTab" class="tabview active">
+<section class="panel" style="margin-bottom:18px"><h2>Operational Snapshot</h2><div class="sub">Quick current conditions. Context labels elsewhere compare each station only with its own observations from the previous 30 days.</div>
+<div class="cards" id="snapshot"></div></section>
+</div><div id="trendsTab" class="tabview"><section class="panel weather"><h2>7-Day Watershed Trends</h2>
+<div class="sub">Compact operational trends from the same USGS observations used elsewhere on this page.</div>
+<div class="chartgrid">
+ <div class="chartbox"><h3>Table Rock Reservoir Stage</h3><div id="chart-tr-stage"></div></div>
+ <div class="chartbox"><h3>North Saluda Reservoir Stage</h3><div id="chart-ns-stage"></div></div>
+ <div class="chartbox"><h3>Table Rock Head-of-Lake Flow</h3><div id="chart-tr-flow"></div></div>
+ <div class="chartbox"><h3>North Saluda Head-of-Lake Flow</h3><div id="chart-ns-flow"></div></div>
+ <div class="chartbox"><h3>Table Rock — Daily Rainfall</h3><div id="chart-tr-rain"></div></div>
+ <div class="chartbox"><h3>North Saluda — Daily Rainfall</h3><div id="chart-ns-rain"></div></div>
+</div></section>
+</section></div><div id="fireTab" class="tabview"><section class="panel weather"><h2>Today's Fire-Weather Sequence</h2>
+<div class="sub">Yesterday/last-24-hour drying → overnight RH recovery → current conditions. RH percentile refers only to today's minimum RH compared with the daily minimum RH from prior days at that same station; it is not a fire-danger percentile. Individual station cards show observed fire-weather conditions and recent trends.</div>
+<div class="watershedfire"><h3 class="grouphead">Table Rock Watershed</h3><div id="fireCardsTR" class="firecards"></div></div>
+<div class="watershedfire"><h3 class="grouphead">North Saluda Watershed</h3><div id="fireCardsNS" class="firecards"></div></div>
+</section>
+</section></div><div id="stationsTab" class="tabview"><div class="grid">
+<section class="panel"><h2>Table Rock Watershed</h2><div class="sub">South Saluda system</div><div id="tr" class="cards"></div></section>
+<section class="panel"><h2>North Saluda Watershed</h2><div class="sub">North Saluda system</div><div id="ns" class="cards"></div></section>
+</div>
+<section class="panel weather"><h2>Weather / Fire Conditions</h2><div class="sub">Current observations. RH uses USGS parameter 00052.</div>
+<div class="scroll"><table><thead><tr><th>Station</th><th>Air temp</th><th>RH</th><th>Wind</th><th>Wind dir.</th><th>Precip.</th><th>Updated</th></tr></thead><tbody id="weather"></tbody></table></div>
+</section>
+<section class="panel weather"><h2>Fire Weather Detail</h2>
+<div class="sub">Locally calculated from USGS observations; these are situational-awareness metrics, not NFDRS fire-danger indices.</div>
+<div class="scroll"><table><thead><tr><th>Station</th><th>Min RH 24h</th><th>Overnight max RH</th><th>Max temp 24h</th><th>Peak wind 24h</th><th>Rain 24h</th><th>Rain 7d</th><th>Rain 30d</th><th>Days ≥0.10"</th><th>Days ≥0.25"</th></tr></thead><tbody id="fireDetail"></tbody></table></div>
+</section>
+</div><div id="hydroTab" class="tabview"><section class="panel weather"><h2>Hydrology Snapshot</h2>
+<div class="sub">Percentile context compares the current instantaneous discharge with this station's own recent 30-day observations. Historical seasonal percentiles are shown only when sufficient USGS approved daily-value history is available.</div>
+<div id="percentileNote" class="note">Loading percentile context…</div>
+<div class="sub">Current discharge/gage height and approximate 24-hour change from available observations.</div>
+<div class="scroll"><table><thead><tr><th>Station</th><th>Current discharge</th><th>30-day percentile</th><th>24h flow change</th><th>Current gage height</th><th>24h stage change</th></tr></thead><tbody id="hydroDetail"></tbody></table></div>
+</section></div>
+</main>
+<script>
+const stations=[
+{id:'02162285',name:'Table Rock Reservoir',basin:'TR',type:'reservoir'},
+{id:'350527082420000',name:'Cowhead',basin:'TR',type:'weather'},
+{id:'021622847',name:'Slicking Creek',basin:'TR',type:'stream'},
+{id:'021622845',name:'SSR Head of Lake',basin:'TR',type:'stream'},
+{id:'021622825',name:'SSR Sassafras',basin:'TR',type:'stream'},
+{id:'350254082445500',name:'SSR Sassafras Rain Gauge',basin:'TR',type:'weather'},
+{id:'02162287',name:'SSR Tailrace',basin:'TR',type:'stream'},
+{id:'021623961',name:'North Saluda Reservoir',basin:'NS',type:'reservoir'},
+{id:'351004082260400',name:'Corbin Mtn',basin:'NS',type:'weather'},
+{id:'021623957',name:'Big Falls Creek',basin:'NS',type:'stream'},
+{id:'351053082221000',name:'Trammel Gap',basin:'NS',type:'weather'},
+{id:'021623950',name:'NSR Head of Lake',basin:'NS',type:'stream'},
+{id:'351012082172400',name:'Hogback Mtn',basin:'NS',type:'weather'},
+{id:'0216239615',name:'NSR Tailrace',basin:'NS',type:'stream'}];
+const P={flow:'00060',gage:'00065',waterTemp:'00010',airTemp:'00020',rh:'00052',wind:'00035',windDir:'00036',rain:'00045',gust:'61728',resElev:'00062'};
+const data={}; const series={};
+
+function obs(sid,p){return series[sid]?.[p]||[]}
+function nums(sid,p,hours){
+ const cut=Date.now()-hours*3600000;
+ return obs(sid,p).filter(x=>new Date(x.time).getTime()>=cut && Number.isFinite(+x.value));
+}
+function minVal(sid,p,h){const a=nums(sid,p,h); return a.length?Math.min(...a.map(x=>+x.value)):null}
+function maxVal(sid,p,h){const a=nums(sid,p,h); return a.length?Math.max(...a.map(x=>+x.value)):null}
+function changeVal(sid,p,h){
+ const a=nums(sid,p,h).sort((x,y)=>new Date(x.time)-new Date(y.time));
+ return a.length>1?(+a[a.length-1].value)-(+a[0].value):null;
+}
+function rainTotal(sid,h){
+ const a=nums(sid,P.rain,h);
+ if(!a.length) return null;
+ // USGS 00045 at these weather stations is interval precipitation; sum observations.
+ return a.reduce((z,x)=>z+(+x.value||0),0);
+}
+function daysSinceRain(sid,threshold){
+ const a=obs(sid,P.rain).filter(x=>Number.isFinite(+x.value)).sort((x,y)=>new Date(y.time)-new Date(x.time));
+ if(!a.length) return null;
+ // Group by local calendar date and find most recent daily total meeting threshold.
+ const daily={};
+ for(const x of a){const d=new Date(x.time).toLocaleDateString('en-CA'); daily[d]=(daily[d]||0)+(+x.value||0);}
+ const dates=Object.keys(daily).sort().reverse();
+ const hit=dates.find(d=>daily[d]>=threshold);
+ if(!hit) return `>${Math.max(0,dates.length-1)}`;
+ const now=new Date(); const hd=new Date(hit+'T12:00:00');
+ return Math.max(0,Math.floor((now-hd)/86400000));
+}
+function overnightRH(sid){
+ const a=obs(sid,P.rh).filter(x=>Number.isFinite(+x.value));
+ const now=new Date(), start=new Date(now); start.setDate(start.getDate()-1); start.setHours(18,0,0,0);
+ const end=new Date(now); end.setHours(9,0,0,0);
+ const b=a.filter(x=>{const d=new Date(x.time);return d>=start&&d<=end});
+ return b.length?Math.max(...b.map(x=>+x.value)):null;
+}
+function fnum(n,unit='',digits=1){return n==null?'—':`${(+n).toFixed(digits)}${unit}`}
+function tempF(n){return n==null?null:(+n*9/5+32)}
+function tempDisplay(x){return x&&Number.isFinite(+x.value)?`${tempF(x.value).toFixed(1)} °F`:'—'}
+function fmtParam(x,p){if(!x)return '—'; if(p===P.airTemp||p===P.waterTemp)return tempDisplay(x); return fmt(x);}
+function pctContext(sid,p,current,hours=720){
+ if(current==null) return null;
+ const a=nums(sid,p,hours).map(x=>+x.value).filter(Number.isFinite).sort((a,b)=>a-b);
+ if(a.length<20) return null;
+ const below=a.filter(v=>v<=current).length/a.length*100;
+ if(below<=20) return {label:'Low vs recent 30d',pct:below};
+ if(below>=80) return {label:'High vs recent 30d',pct:below};
+ return {label:'Typical vs recent 30d',pct:below};
+}
+function ctxHTML(c){return c?`<span class="context">${c.label}</span><div class="contextnote">~${Math.round(c.pct)}th percentile of observations from the last 30 days</div>`:''}
+function recentPercentile(sid,p,current,hours=720){
+ if(current==null) return null;
+ const a=nums(sid,p,hours).map(x=>+x.value).filter(Number.isFinite).sort((a,b)=>a-b);
+ if(a.length<20) return null;
+ return Math.max(1,Math.min(99,Math.round(a.filter(v=>v<=current).length/a.length*100)));
+}
+
+function dailyMinPercentile(sid,p=P.rh,days=30){
+ const a=obs(sid,p).filter(x=>Number.isFinite(+x.value));
+ if(!a.length)return null;
+ const daily={};
+ for(const x of a){
+   const d=new Date(x.time).toLocaleDateString('en-CA'), v=+x.value;
+   daily[d]=daily[d]==null?v:Math.min(daily[d],v);
+ }
+ const keys=Object.keys(daily).sort();
+ if(keys.length<5)return null;
+ const today=new Date().toLocaleDateString('en-CA');
+ const current=daily[today] ?? Math.min(...nums(sid,p,24).map(x=>+x.value));
+ if(!Number.isFinite(current))return null;
+ const prior=keys.filter(k=>k!==today).slice(-days).map(k=>daily[k]).filter(Number.isFinite).sort((a,b)=>a-b);
+ if(prior.length<5)return null;
+ return {pct:Math.max(1,Math.min(99,Math.round(prior.filter(v=>v<=current).length/prior.length*100))), value:current, n:prior.length};
+}
+function pctBand(p){
+ if(p==null)return '—';
+ if(p<10)return 'Very low';
+ if(p<25)return 'Low';
+ if(p<=75)return 'Typical';
+ if(p<=90)return 'High';
+ return 'Very high';
+}
+function pctBar(p){
+ if(p==null)return '—';
+ return `<div class="pctwrap"><b>${p}th percentile • ${pctBand(p)}</b><div class="pctbar"><span class="pctdot" style="left:calc(${p}% - 2px)"></span></div><div class="pctlabels"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div></div>`;
+}
+
+
+
+function val(sid,p){return data[sid]?.[p]||null}
+function fmt(x){return x?`${x.value} ${x.unit||''}`:'—'}
+function when(x){return x?new Date(x.time).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—'}
+function card(s){
+ const fields=s.type==='stream'?[[P.flow,'Discharge'],[P.gage,'Gage height'],[P.waterTemp,'Water temp']]:
+ [[P.gage,'Gage height'],[P.airTemp,'Air temp'],[P.rh,'RH'],[P.wind,'Wind'],[P.rain,'Precip']];
+ const vs=fields.map(([p,l])=>`<div class="v">${l}<b>${fmtParam(val(s.id,p),p)}</b></div>`).join('');
+ return `<div class="card"><h3>${s.name}</h3><div class="vals">${vs}</div></div>`;
+}
+
+function spark(sid,p,hours=168){
+ const a=nums(sid,p,hours).sort((x,y)=>new Date(x.time)-new Date(y.time));
+ if(a.length<2) return '<div class="chartnote">Not enough observations</div>';
+ const vals=a.map(x=>+x.value), mn=Math.min(...vals), mx=Math.max(...vals), span=(mx-mn)||1;
+ const W=500,H=130,pad=8;
+ const pts=a.map((x,i)=>{
+   const px=pad+i*(W-2*pad)/(a.length-1);
+   const py=pad+(mx-(+x.value))*(H-2*pad)/span;
+   return `${px.toFixed(1)},${py.toFixed(1)}`;
+ }).join(' ');
+ return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="7 day trend">
+ <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#dce2dc" stroke-width="1"/>
+ <polyline points="${pts}" fill="none" stroke="#315d78" stroke-width="2" vector-effect="non-scaling-stroke"/>
+ </svg><div class="chartnote">Low ${mn.toFixed(2)} • High ${mx.toFixed(2)} • Current ${vals[vals.length-1].toFixed(2)}</div>`;
+}
+
+function dailyRain(sid,days=7){
+ const a=obs(sid,P.rain).filter(x=>Number.isFinite(+x.value));
+ const out={};
+ for(const x of a){
+   const d=new Date(x.time), key=d.toLocaleDateString('en-CA');
+   out[key]=(out[key]||0)+(+x.value||0);
+ }
+ const dates=[]; const now=new Date();
+ for(let i=days-1;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);dates.push(d.toLocaleDateString('en-CA'))}
+ return dates.map(d=>({date:d,value:out[d]||0}));
+}
+function rainBars(siteIds,days=7){
+ const sets=siteIds.map(id=>({id,name:stations.find(s=>s.id===id)?.name||id,rows:dailyRain(id,days)}));
+ const all=sets.flatMap(s=>s.rows.map(r=>r.value)), mx=Math.max(.01,...all);
+ const W=500,H=150,padL=28,padB=25,padT=8,plotH=H-padB-padT;
+ const dates=sets[0]?.rows.map(r=>r.date)||[];
+ if(!dates.length)return '<div class="chartnote">No rainfall observations</div>';
+ // One watershed-average daily bar is intentionally NOT shown; each gauge stays separate below.
+ let dateLabels='';
+ dates.forEach((d,i)=>{
+   const dd=new Date(d+'T12:00:00');
+   dateLabels+=`<span>${dd.toLocaleDateString([], {month:'numeric',day:'numeric'})}</span>`;
+ });
+ const rows=sets.map((set,j)=>{
+   const vals=set.rows.map(r=>r.value);
+   const maxv=Math.max(.01,...vals);
+   const bars=vals.map(v=>`<span title="${v.toFixed(2)} in" style="display:block;height:${Math.max(2,(v/maxv)*44)}px;background:#315d78;opacity:${(.5+j*.1).toFixed(2)};border-radius:2px 2px 0 0"></span>`).join('');
+   return `<div style="margin-top:10px"><div style="display:flex;justify-content:space-between;font-size:11px"><b>${set.name}</b><span>7d: ${vals.reduce((a,b)=>a+b,0).toFixed(2)} in</span></div><div style="height:48px;display:grid;grid-template-columns:repeat(${days},1fr);gap:4px;align-items:end;border-bottom:1px solid #dce2dc">${bars}</div><div style="display:grid;grid-template-columns:repeat(${days},1fr);gap:4px;text-align:center;font-size:9px;color:#657067">${dateLabels}</div><div style="display:grid;grid-template-columns:repeat(${days},1fr);gap:4px;text-align:center;font-size:9px;color:#315d78">${vals.map(v=>`<span>${v.toFixed(2)}</span>`).join('')}</div></div>`;
+ }).join('');
+ return rows+'<div class="chartnote">Daily rainfall in inches. Each gauge has its own row and exact daily amounts.</div>';
+}
+function currentNum(sid,p){const x=val(sid,p);return x&&Number.isFinite(+x.value)?+x.value:null}
+
+function periodMin(sid,p,hours){
+ const a=nums(sid,p,hours).map(x=>+x.value).filter(Number.isFinite);
+ return a.length?Math.min(...a):null;
+}
+function periodMax(sid,p,hours){
+ const a=nums(sid,p,hours).map(x=>+x.value).filter(Number.isFinite);
+ return a.length?Math.max(...a):null;
+}
+function fireCard(s){
+ const cur=currentNum(s.id,P.rh), low=minVal(s.id,P.rh,24), rec=overnightRH(s.id), rain=rainTotal(s.id,24), wind=maxVal(s.id,P.gust,24)??maxVal(s.id,P.wind,24);
+ const t=currentNum(s.id,P.airTemp), drh=dailyMinPercentile(s.id,P.rh,30);
+ const rhContext=drh?`<div class="contextnote" style="font-size:12px;margin:6px 0"><b>Today's minimum RH: ${drh.value.toFixed(0)}%</b><br>${drh.pct}th percentile compared with daily minimum RH from the previous ${drh.n} days</div>`:'';
+ return `<div class="firecard"><h3>${s.name}</h3>
+ <div class="big">${fnum(cur,'% RH',0)} • ${fnum(tempF(t),' °F',0)}</div>
+ ${rhContext}
+ <div>24h min RH: <b>${fnum(low,'%',0)}</b></div>
+ <div>Overnight max RH: <b>${fnum(rec,'%',0)}</b></div>
+ <div>24h rain: <b>${fnum(rain,' in',2)}</b></div>
+ <div>Peak wind: <b>${fnum(wind,'',1)}</b></div>
+ <div>Days since ≥0.10": <b>${daysSinceRain(s.id,.10)??'—'}</b></div></div>`;
+}
+function render(){
+ document.getElementById('tr').innerHTML=stations.filter(s=>s.basin==='TR').map(card).join('');
+ document.getElementById('ns').innerHTML=stations.filter(s=>s.basin==='NS').map(card).join('');
+ const ws=stations.filter(s=>s.type!=='stream');
+ document.getElementById('weather').innerHTML=ws.map(s=>{
+  const a=val(s.id,P.airTemp),r=val(s.id,P.rh),w=val(s.id,P.wind),d=val(s.id,P.windDir),p=val(s.id,P.rain);
+  const newest=[a,r,w,d,p].filter(Boolean).sort((x,y)=>new Date(y.time)-new Date(x.time))[0];
+  return `<tr><td><b>${s.name}</b></td><td>${tempDisplay(a)}</td><td>${fmt(r)}</td><td>${fmt(w)}</td><td>${fmt(d)}</td><td>${fmt(p)}</td><td>${when(newest)}</td></tr>`;
+ }).join('');
+ const fireSites=stations.filter(s=>s.type!=='stream');
+ document.getElementById('fireDetail').innerHTML=fireSites.map(s=>{
+   const windPeak=maxVal(s.id,P.gust,24) ?? maxVal(s.id,P.wind,24);
+   return `<tr><td><b>${s.name}</b></td><td>${fnum(minVal(s.id,P.rh,24),'%',0)}</td><td>${fnum(overnightRH(s.id),'%',0)}</td><td>${fnum(tempF(maxVal(s.id,P.airTemp,24)),' °F',1)}</td><td>${fnum(windPeak,'',1)}</td><td>${fnum(rainTotal(s.id,24),' in',2)}</td><td>${fnum(rainTotal(s.id,168),' in',2)}</td><td>${fnum(rainTotal(s.id,720),' in',2)}</td><td>${daysSinceRain(s.id,.10)??'—'}</td><td>${daysSinceRain(s.id,.25)??'—'}</td></tr>`;
+ }).join('');
+ const hydro=stations.filter(s=>s.type==='stream'||s.type==='reservoir');
+ document.getElementById('hydroDetail').innerHTML=hydro.map(s=>{const cf=currentNum(s.id,P.flow), cc=pctContext(s.id,P.flow,cf); return `<tr><td><b>${s.name}</b></td><td>${fmt(val(s.id,P.flow))}</td><td>${pctBar(recentPercentile(s.id,P.flow,cf))}</td><td>${fnum(changeVal(s.id,P.flow,24),'',1)}</td><td>${fmt(val(s.id,P.gage))}</td><td>${fnum(changeVal(s.id,P.gage,24),' ft',2)}</td></tr>`}).join('');
+ document.getElementById('chart-tr-stage').innerHTML=spark('02162285',P.gage,168);
+ document.getElementById('chart-ns-stage').innerHTML=spark('021623961',P.gage,168);
+ document.getElementById('chart-tr-flow').innerHTML=spark('021622845',P.flow,168);
+ document.getElementById('chart-ns-flow').innerHTML=spark('021623950',P.flow,168);
+ document.getElementById('chart-tr-rain').innerHTML=rainBars(['02162285','350527082420000','350254082445500'],7);
+ document.getElementById('chart-ns-rain').innerHTML=rainBars(['021623961','351053082221000','351012082172400','351004082260400'],7);
+ const trFireIds=['02162285','350527082420000','350254082445500'];
+ const nsFireIds=['021623961','351053082221000','351012082172400','351004082260400'];
+ document.getElementById('fireCardsTR').innerHTML=trFireIds.map(id=>stations.find(s=>s.id===id)).filter(Boolean).map(fireCard).join('');
+ document.getElementById('fireCardsNS').innerHTML=nsFireIds.map(id=>stations.find(s=>s.id===id)).filter(Boolean).map(fireCard).join('');
+ const trRain=rainTotal('02162285',24), nsRain=rainTotal('021623961',24);
+ const trStage=changeVal('02162285',P.gage,24), nsStage=changeVal('021623961',P.gage,24);
+ const trCurrent=currentNum('02162285',P.gage), nsCurrent=currentNum('021623961',P.gage);
+ document.getElementById('snapshot').innerHTML=[
+  ['Table Rock Reservoir • Stage',fnum(trCurrent,' ft',2),`${trStage==null?'—':(trStage>=0?'+':'')+trStage.toFixed(2)+' ft'} over 24h`],
+  ['North Saluda Reservoir • Stage',fnum(nsCurrent,' ft',2),`${nsStage==null?'—':(nsStage>=0?'+':'')+nsStage.toFixed(2)+' ft'} over 24h`],
+  ['Table Rock Reservoir • 24h Rain',fnum(trRain,' in',2),'Reservoir gauge'],
+  ['North Saluda Reservoir • 24h Rain',fnum(nsRain,' in',2),'Reservoir gauge']
+ ].map(x=>`<div class="card"><h3>${x[0]}</h3><div style="font-size:22px;font-weight:700">${x[1]}</div><div class="sub" style="margin-top:4px">${x[2]}</div></div>`).join('');
+}
+async function load(){
+ const st=document.getElementById('status'); st.textContent='Loading…'; st.className='';
+ const ids=stations.map(s=>s.id).join(',');
+ const params=Object.values(P).join(',');
+ const url=`https://waterservices.usgs.gov/nwis/iv/?format=json&sites=${ids}&parameterCd=${params}&siteStatus=all&period=P30D`;
+ try{
+  const r=await fetch(url);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j=await r.json();
+  Object.keys(data).forEach(k=>delete data[k]); Object.keys(series).forEach(k=>delete series[k]);
+  for(const ts of (j.value?.timeSeries||[])){
+   const sid=ts.sourceInfo?.siteCode?.[0]?.value;
+   const code=ts.variable?.variableCode?.[0]?.value;
+   const unit=ts.variable?.unit?.unitCode||'';
+   const values=(ts.values||[]).flatMap(g=>g.value||[]).map(v=>({value:v.value,time:v.dateTime,unit}));
+   if(!sid||!code||!values.length) continue;
+   values.sort((a,b)=>new Date(a.time)-new Date(b.time));
+   series[sid]??={}; series[sid][code]=values;
+   const last=values[values.length-1];
+   data[sid]??={};
+   data[sid][code]={value:last.value,unit,time:last.time};
+  }
+  render();
+  const loaded=stations.filter(s=>data[s.id]&&Object.keys(data[s.id]).length).length;
+  st.textContent=`Live data received for ${loaded}/${stations.length} stations • ${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}`;
+  const pn=document.getElementById('percentileNote'); if(pn) pn.innerHTML='<b>How to read this:</b> 50th percentile means the current flow is near the middle of observations from the comparison period. Below the 25th is relatively low; above the 75th is relatively high. These labels describe relative conditions, not good/bad conditions.';
+  st.className=loaded?'good':'bad';
+ }catch(e){
+  console.error(e);
+  st.textContent=`Request failed: ${e.message}. If this page was opened directly from Downloads, the browser/network may be blocking cross-origin requests from local files.`;
+  st.className='bad';
+ }
+}
+
+document.querySelectorAll('.tabbtn').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));
+ document.querySelectorAll('.tabview').forEach(x=>x.classList.remove('active'));
+ b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
+}));
+render();load();
+</script></body></html>
